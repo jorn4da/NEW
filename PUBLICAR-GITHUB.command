@@ -36,6 +36,9 @@ EOF
 # GitHub Pages: não processar com Jekyll (mantém pastas intactas)
 touch .nojekyll
 
+# Domínio próprio (GitHub Pages) — garante o CNAME a cada publicação
+echo "curylancamento.app.br" > CNAME
+
 # 2) Inicializa o repositório na 1ª vez
 if [ ! -d ".git" ]; then
   echo "→ Primeira publicação: preparando o repositório..."
@@ -69,6 +72,15 @@ echo "✅ Publicado com sucesso em: https://github.com/jorn4da/NEW"
 echo ""
 echo "   Para ativar o site (GitHub Pages):"
 echo "   Settings > Pages > Branch: main / (root) > Save"
-echo "   O site ficará em: https://jorn4da.github.io/NEW/"
+echo "   Custom domain: curylancamento.app.br  (marque Enforce HTTPS)"
+echo ""
+echo "   No registro.br, aponte o DNS do dominio para o GitHub:"
+echo "     A     @   185.199.108.153"
+echo "     A     @   185.199.109.153"
+echo "     A     @   185.199.110.153"
+echo "     A     @   185.199.111.153"
+echo "     CNAME www jorn4da.github.io"
+echo ""
+echo "   Site final: https://curylancamento.app.br"
 echo ""
 read -r -p "Pode fechar esta janela. (Enter) " _
