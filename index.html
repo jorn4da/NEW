@@ -733,7 +733,7 @@ function enviarLead(e){
   if(window.gtag) gtag('event','generate_lead',{origem:'Formulário Hero'});
   if(window.dataLayer) dataLayer.push({event:'generate_lead', form_origin:'hero'});
 
-  // dispara o lead por e-mail (sem sair da página)
+  // dispara o e-mail do cadastro para o corretor (sem sair da página)
   try{
     fetch('https://formsubmit.co/ajax/' + LEAD_EMAIL, {
       method:'POST',
@@ -742,7 +742,8 @@ function enviarLead(e){
         _subject:'Novo lead — Nova Leopoldina (Ramos)',
         Nome:nome, WhatsApp:whats, 'E-mail':email, 'Renda familiar':renda,
         'Operadora (estimativa)':operadora(whats),
-        Empreendimento:EMP, Origem:location.href, _template:'table', _captcha:'false'
+        Empreendimento:EMP, Origem:location.href,
+        _replyto: email, _cc: 'imoveisjornada@gmail.com', _template:'table', _captcha:'false'
       })
     }).catch(function(){});
   }catch(err){}
