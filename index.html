@@ -677,7 +677,10 @@ document.querySelectorAll('[data-wpp]').forEach(function(el){
 });
 
 // ===== E-mail que recebe os leads =====
-var LEAD_EMAIL = 'aritan.rj@curyvendas.com.br';
+// Endpoint FormSubmit já ATIVADO (Gmail que recebe os leads do hub) -> chega na hora.
+var LEAD_EMAIL = 'imoveisjornada@gmail.com';
+// Cópia para o e-mail comercial da Cury (não precisa de ativação por ser cópia).
+var LEAD_CC = 'aritan.rj@curyvendas.com.br';
 
 // ===== Verificação de operadora (estimativa por prefixo) =====
 function operadora(v){
@@ -734,16 +737,23 @@ function enviarLead(e){
   if(window.dataLayer) dataLayer.push({event:'generate_lead', form_origin:'hero'});
 
   // dispara o e-mail do cadastro para o corretor (sem sair da página)
+  var agora = new Date().toLocaleString('pt-BR');
   try{
     fetch('https://formsubmit.co/ajax/' + LEAD_EMAIL, {
       method:'POST',
       headers:{'Content-Type':'application/json','Accept':'application/json'},
       body: JSON.stringify({
-        _subject:'Novo lead — Nova Leopoldina (Ramos)',
-        Nome:nome, WhatsApp:whats, 'E-mail':email, 'Renda familiar':renda,
-        'Operadora (estimativa)':operadora(whats),
-        Empreendimento:EMP, Origem:location.href,
-        _replyto: email, _cc: 'imoveisjornada@gmail.com', _template:'table', _captcha:'false'
+        _subject:'Novo lead Nova Leopoldina: ' + nome,
+        Nome:nome,
+        WhatsApp:whats,
+        'E-mail':email,
+        Renda:renda,
+        Operadora:operadora(whats) || 'não identificada',
+        Interesse:'Receber condições exclusivas',
+        Empreendimento:EMP,
+        'Recebido em':agora,
+        Origem:location.href,
+        _replyto: email, _cc: LEAD_CC, _template:'table', _captcha:'false'
       })
     }).catch(function(){});
   }catch(err){}
