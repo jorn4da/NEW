@@ -244,6 +244,17 @@ footer li{margin-bottom:9px}
 .float-wpp svg{width:22px;height:22px;fill:#fff}
 .float-wpp .txt{font-size:.92rem}
 
+/* ---------- Modal WhatsApp ---------- */
+.modal-overlay{position:fixed;inset:0;z-index:120;background:rgba(14,27,51,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);padding:32px 28px;max-width:420px;width:100%;box-shadow:var(--shadow-hover);position:relative;animation:modalIn .25s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.modal-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:1.6rem;line-height:1;color:var(--gray);cursor:pointer}
+.modal-close:hover{color:var(--ink)}
+.modal .m-badge{display:inline-flex;align-items:center;gap:7px;background:#E7F5EC;color:#1A7F54;font-weight:700;font-size:.74rem;padding:6px 12px;border-radius:999px;margin-bottom:12px}
+.modal h3{font-size:1.35rem;color:var(--navy);margin-bottom:6px}
+.modal p.msub{font-size:.9rem;color:var(--gray);margin-bottom:18px}
+
 /* ---------- Responsive ---------- */
 @media(max-width:960px){
   .hero .container{grid-template-columns:1fr;gap:34px}
@@ -353,7 +364,7 @@ footer li{margin-bottom:9px}
         <div class="chk">✓</div>
         <h3>Recebemos seus dados!</h3>
         <p>Estamos te levando ao WhatsApp para falar com um especialista agora mesmo.</p>
-        <a href="#" class="btn btn-wpp btn-block" data-wpp data-origem="Pós-formulário">Abrir o WhatsApp</a>
+        <a href="#" class="btn btn-wpp btn-block" data-wpp data-skipmodal data-origem="Pós-formulário">Abrir o WhatsApp</a>
       </div>
     </div>
   </div>
@@ -649,6 +660,34 @@ footer li{margin-bottom:9px}
   </div>
 </footer>
 
+<!-- Modal de captura antes do WhatsApp -->
+<div class="modal-overlay" id="wppModal" aria-hidden="true">
+  <div class="modal">
+    <button class="modal-close" id="wppClose" aria-label="Fechar">&times;</button>
+    <span class="m-badge">✓ Falta só um passo</span>
+    <h3>Receba as condições no WhatsApp</h3>
+    <p class="msub">Informe seu nome e sua renda para o especialista já te atender com a proposta certa.</p>
+    <form id="wppForm">
+      <div class="field">
+        <label for="m-nome">Nome e sobrenome</label>
+        <input type="text" id="m-nome" placeholder="Ex.: Carlos Silva" required />
+        <span class="err-msg" id="m-nome-err">Informe nome e sobrenome.</span>
+      </div>
+      <div class="field">
+        <label for="m-renda">Renda familiar</label>
+        <select id="m-renda" required>
+          <option value="" disabled selected>Selecione a renda familiar</option>
+          <option>Até R$ 5 mil</option>
+          <option>Até R$ 9 mil</option>
+          <option>Até R$ 13 mil</option>
+          <option>Mais de R$ 13 mil</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-wpp btn-block">Continuar para o WhatsApp</button>
+    </form>
+  </div>
+</div>
+
 <!-- Floating WhatsApp -->
 <a href="#" class="float-wpp" data-wpp data-origem="Botão flutuante">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -667,12 +706,16 @@ function wppLink(origem, extra){
   return 'https://wa.me/' + WPP_NUMBER + '?text=' + encodeURIComponent(msg);
 }
 
+// Botões de WhatsApp: abrem o modal p/ capturar nome+renda antes (exceto os marcados data-skipmodal)
 document.querySelectorAll('[data-wpp]').forEach(function(el){
   el.addEventListener('click', function(e){
     e.preventDefault();
-    if(window.fbq) fbq('track','Contact');
-    if(window.gtag) gtag('event','contact_whatsapp',{origem: el.getAttribute('data-origem')});
-    window.open(wppLink(el.getAttribute('data-origem')), '_blank');
+    if(el.hasAttribute('data-skipmodal')){
+      var direct = el.getAttribute('href');
+      window.open((direct && direct !== '#') ? direct : wppLink(el.getAttribute('data-origem')), '_blank');
+      return;
+    }
+    openWppModal(el.getAttribute('data-origem'));
   });
 });
 
@@ -772,6 +815,55 @@ function enviarLead(e){
   window.open(link, '_blank');
   return false;
 }
+
+// ===== Modal de captura antes do WhatsApp (nome + renda -> e-mail + WhatsApp) =====
+var WPP_ORIGEM = 'Página';
+var wppModal = document.getElementById('wppModal');
+function openWppModal(origem){
+  WPP_ORIGEM = origem || 'Página';
+  wppModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ var n=document.getElementById('m-nome'); if(n) n.focus(); }, 60);
+}
+function closeWppModal(){ wppModal.classList.remove('open'); document.body.style.overflow=''; }
+document.getElementById('wppClose').addEventListener('click', closeWppModal);
+wppModal.addEventListener('click', function(e){ if(e.target === wppModal) closeWppModal(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeWppModal(); });
+
+document.getElementById('wppForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var nome = document.getElementById('m-nome').value.trim();
+  var renda = document.getElementById('m-renda').value;
+  var ne = document.getElementById('m-nome');
+  if(nome.split(/\s+/).filter(Boolean).length < 2){ ne.classList.add('invalid'); ne.focus(); return; }
+  ne.classList.remove('invalid');
+
+  // rastreamento
+  if(window.fbq) fbq('track','Contact');
+  if(window.gtag) gtag('event','contact_whatsapp',{origem: WPP_ORIGEM});
+  if(window.dataLayer) dataLayer.push({event:'contact_whatsapp', origem: WPP_ORIGEM});
+
+  // e-mail automático do cadastro (mesmo destino do formulário)
+  var agora = new Date().toLocaleString('pt-BR');
+  try{
+    fetch('https://formsubmit.co/ajax/' + LEAD_EMAIL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify({
+        _subject:'Novo lead Nova Leopoldina: ' + nome,
+        Nome:nome, Renda:renda, Interesse:WPP_ORIGEM,
+        Empreendimento:EMP, 'Recebido em':agora, Origem:location.href,
+        _cc: LEAD_CC, _template:'table', _captcha:'false'
+      })
+    }).catch(function(){});
+  }catch(err){}
+
+  // WhatsApp com os dados
+  var msg = 'Olá! Vi a página do *' + EMP + '* e quero as condições exclusivas. '
+          + 'Meu nome é *' + nome + '* e minha renda familiar é ' + renda + '. (Origem: ' + WPP_ORIGEM + ')';
+  window.open('https://wa.me/' + WPP_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
+  closeWppModal();
+});
 </script>
 </body>
 </html>
