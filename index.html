@@ -309,7 +309,7 @@ footer li{margin-bottom:9px}
 
 <!-- ========== HERO ========== -->
 <section class="hero" id="topo">
-  <video autoplay muted loop playsinline poster="assets/img/hero-poster.jpg">
+  <video id="heroVideo" autoplay muted loop playsinline preload="auto" poster="assets/img/hero-poster.jpg">
     <source src="assets/video/hero-web.mp4" type="video/mp4" />
   </video>
   <div class="container">
@@ -701,6 +701,18 @@ footer li{margin-bottom:9px}
 </a>
 
 <script>
+// ===== Vídeo do topo em loop contínuo (reforço p/ todos os navegadores) =====
+(function(){
+  var hv = document.getElementById('heroVideo');
+  if(!hv) return;
+  hv.loop = true; hv.muted = true;
+  hv.addEventListener('ended', function(){ this.currentTime = 0; this.play().catch(function(){}); });
+  function forcaPlay(){ hv.play().catch(function(){}); }
+  hv.addEventListener('canplay', forcaPlay);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) forcaPlay(); });
+  forcaPlay();
+})();
+
 // ===== WhatsApp inteligente: mensagem pré-preenchida com origem =====
 var WPP_NUMBER = '5521959434519';
 var EMP = 'Nova Leopoldina (Ramos)';
