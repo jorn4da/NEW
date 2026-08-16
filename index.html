@@ -674,6 +674,12 @@ footer li{margin-bottom:9px}
         <span class="err-msg" id="m-nome-err">Informe nome e sobrenome.</span>
       </div>
       <div class="field">
+        <label for="m-whats">Melhor WhatsApp para contato</label>
+        <input type="tel" id="m-whats" inputmode="numeric" maxlength="16" placeholder="(21) 90000-0000" required />
+        <span class="err-msg" id="m-whats-err">Número inválido. Use: (XX) 9XXXX-XXXX</span>
+        <span class="ok-msg" id="m-whats-ok"></span>
+      </div>
+      <div class="field">
         <label for="m-renda">Renda familiar</label>
         <select id="m-renda" required>
           <option value="" disabled selected>Selecione a renda familiar</option>
@@ -826,6 +832,27 @@ function openWppModal(origem){
   setTimeout(function(){ var n=document.getElementById('m-nome'); if(n) n.focus(); }, 60);
 }
 function closeWppModal(){ wppModal.classList.remove('open'); document.body.style.overflow=''; }
+
+// máscara + verificação de número no campo do modal (igual ao formulário)
+var mFone = document.getElementById('m-whats');
+var mFoneOk = document.getElementById('m-whats-ok');
+mFone.addEventListener('input', function(){
+  var v = this.value.replace(/\D/g,'').slice(0,11);
+  var out = '';
+  if(v.length>0) out = '(' + v.slice(0,2);
+  if(v.length>=3) out += ') ' + v.slice(2,7);
+  if(v.length>=8) out += '-' + v.slice(7,11);
+  this.value = out;
+  this.classList.remove('invalid');
+  if(foneValido(this.value)){
+    this.classList.add('valid');
+    var op = operadora(this.value);
+    mFoneOk.textContent = op ? ('✓ Número válido — Operadora: ' + op) : '✓ Número de celular válido';
+    mFoneOk.style.display = 'block';
+  } else { this.classList.remove('valid'); mFoneOk.style.display = 'none'; }
+});
+mFone.addEventListener('blur', function(){ if(this.value && !foneValido(this.value)) this.classList.add('invalid'); });
+
 document.getElementById('wppClose').addEventListener('click', closeWppModal);
 wppModal.addEventListener('click', function(e){ if(e.target === wppModal) closeWppModal(); });
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeWppModal(); });
@@ -833,10 +860,13 @@ document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeWppM
 document.getElementById('wppForm').addEventListener('submit', function(e){
   e.preventDefault();
   var nome = document.getElementById('m-nome').value.trim();
+  var whats = document.getElementById('m-whats').value.trim();
   var renda = document.getElementById('m-renda').value;
-  var ne = document.getElementById('m-nome');
-  if(nome.split(/\s+/).filter(Boolean).length < 2){ ne.classList.add('invalid'); ne.focus(); return; }
-  ne.classList.remove('invalid');
+  var ne = document.getElementById('m-nome'), we = document.getElementById('m-whats');
+  var ok = true;
+  if(nome.split(/\s+/).filter(Boolean).length < 2){ ne.classList.add('invalid'); ok=false; } else { ne.classList.remove('invalid'); }
+  if(!foneValido(whats)){ we.classList.add('invalid'); ok=false; } else { we.classList.remove('invalid'); we.classList.add('valid'); }
+  if(!ok){ (ne.classList.contains('invalid')?ne:we).focus(); return; }
 
   // rastreamento
   if(window.fbq) fbq('track','Contact');
@@ -851,7 +881,9 @@ document.getElementById('wppForm').addEventListener('submit', function(e){
       headers:{'Content-Type':'application/json','Accept':'application/json'},
       body: JSON.stringify({
         _subject:'Novo lead Nova Leopoldina: ' + nome,
-        Nome:nome, Renda:renda, Interesse:WPP_ORIGEM,
+        Nome:nome, WhatsApp:whats, Renda:renda,
+        Operadora:operadora(whats) || 'não identificada',
+        Interesse:WPP_ORIGEM,
         Empreendimento:EMP, 'Recebido em':agora, Origem:location.href,
         _cc: LEAD_CC, _template:'table', _captcha:'false'
       })
@@ -860,7 +892,7 @@ document.getElementById('wppForm').addEventListener('submit', function(e){
 
   // WhatsApp com os dados
   var msg = 'Olá! Vi a página do *' + EMP + '* e quero as condições exclusivas. '
-          + 'Meu nome é *' + nome + '* e minha renda familiar é ' + renda + '. (Origem: ' + WPP_ORIGEM + ')';
+          + 'Meu nome é *' + nome + '*, meu WhatsApp é ' + whats + ' e minha renda familiar é ' + renda + '. (Origem: ' + WPP_ORIGEM + ')';
   window.open('https://wa.me/' + WPP_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
   closeWppModal();
 });
