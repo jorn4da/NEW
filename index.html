@@ -747,23 +747,33 @@ document.querySelectorAll('[data-wpp]').forEach(function(el){
 var LEAD_EMAIL = 'imoveisjornada@gmail.com';
 // Cópia para o e-mail comercial da Cury (não precisa de ativação por ser cópia).
 var LEAD_CC = 'aritan.rj@curyvendas.com.br';
+// Planilha do Google (Apps Script). Cole aqui a URL do "App da Web" (termina em /exec).
+// Enquanto estiver vazio, só o e-mail é usado. Veja COMO-CONECTAR-PLANILHA.md
+var SHEET_WEBHOOK = 'https://script.google.com/macros/s/AKfycbyeCg1rfo85NcgTM15vE2dLzhPqomi23nAiLItM63QqhwqTC5CAmoihL2J713Dqx-nB/exec';
 
-// ===== Envio ROBUSTO do lead: sobrevive à navegação (keepalive) + fallback sendBeacon =====
-// Garante que o cadastro seja registrado por e-mail ANTES/independente do redirect pro WhatsApp,
+// ===== Envio ROBUSTO do lead: e-mail + planilha, sobrevive à navegação (keepalive) =====
+// Garante que o cadastro seja registrado ANTES/independente do redirect pro WhatsApp,
 // mesmo que o pop-up seja bloqueado ou o app não esteja instalado.
 function postLead(payload){
-  payload._cc = payload._cc || LEAD_CC;
-  payload._template = 'table';
-  payload._captcha = 'false';
+  // --- 1) E-mail (FormSubmit) ---
+  var emailObj = {}; for(var k in payload){ emailObj[k] = payload[k]; }
+  emailObj._cc = LEAD_CC; emailObj._template = 'table'; emailObj._captcha = 'false';
   var url = 'https://formsubmit.co/ajax/' + LEAD_EMAIL;
-  var body = JSON.stringify(payload);
-  var ok = false;
+  var emailBody = JSON.stringify(emailObj);
   try{
-    fetch(url, {method:'POST', keepalive:true, headers:{'Content-Type':'application/json','Accept':'application/json'}, body:body});
-    ok = true;
-  }catch(err){}
-  if(!ok && navigator.sendBeacon){
-    try{ navigator.sendBeacon(url, new Blob([body], {type:'application/json'})); }catch(e){}
+    fetch(url, {method:'POST', keepalive:true, headers:{'Content-Type':'application/json','Accept':'application/json'}, body:emailBody});
+  }catch(err){
+    if(navigator.sendBeacon){ try{ navigator.sendBeacon(url, new Blob([emailBody], {type:'application/json'})); }catch(e){} }
+  }
+  // --- 2) Planilha do Google (Apps Script), em paralelo ---
+  if(SHEET_WEBHOOK){
+    var sheetObj = {}; for(var j in payload){ if(j.charAt(0) !== '_') sheetObj[j] = payload[j]; }
+    var sheetBody = JSON.stringify(sheetObj);
+    try{
+      fetch(SHEET_WEBHOOK, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=utf-8'}, body:sheetBody});
+    }catch(e2){
+      if(navigator.sendBeacon){ try{ navigator.sendBeacon(SHEET_WEBHOOK, new Blob([sheetBody], {type:'text/plain'})); }catch(e3){} }
+    }
   }
 }
 // Abre o WhatsApp de forma resiliente: tenta nova aba; se o pop-up for bloqueado, navega na própria aba.
