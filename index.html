@@ -728,12 +728,17 @@ function wppLink(origem, extra){
 document.querySelectorAll('[data-wpp]').forEach(function(el){
   el.addEventListener('click', function(e){
     e.preventDefault();
+    var origem = el.getAttribute('data-origem');
+    // registra a INTENÇÃO já no clique (mesmo que a pessoa desista do modal depois)
+    if(window.fbq) fbq('trackCustom','LeadIntent',{origem: origem});
+    if(window.gtag) gtag('event','lead_intent',{origem: origem});
+    if(window.dataLayer) dataLayer.push({event:'lead_intent', origem: origem});
     if(el.hasAttribute('data-skipmodal')){
       var direct = el.getAttribute('href');
-      window.open((direct && direct !== '#') ? direct : wppLink(el.getAttribute('data-origem')), '_blank');
+      abrirWhats((direct && direct !== '#') ? direct : wppLink(origem));
       return;
     }
-    openWppModal(el.getAttribute('data-origem'));
+    openWppModal(origem);
   });
 });
 
@@ -742,6 +747,31 @@ document.querySelectorAll('[data-wpp]').forEach(function(el){
 var LEAD_EMAIL = 'imoveisjornada@gmail.com';
 // Cópia para o e-mail comercial da Cury (não precisa de ativação por ser cópia).
 var LEAD_CC = 'aritan.rj@curyvendas.com.br';
+
+// ===== Envio ROBUSTO do lead: sobrevive à navegação (keepalive) + fallback sendBeacon =====
+// Garante que o cadastro seja registrado por e-mail ANTES/independente do redirect pro WhatsApp,
+// mesmo que o pop-up seja bloqueado ou o app não esteja instalado.
+function postLead(payload){
+  payload._cc = payload._cc || LEAD_CC;
+  payload._template = 'table';
+  payload._captcha = 'false';
+  var url = 'https://formsubmit.co/ajax/' + LEAD_EMAIL;
+  var body = JSON.stringify(payload);
+  var ok = false;
+  try{
+    fetch(url, {method:'POST', keepalive:true, headers:{'Content-Type':'application/json','Accept':'application/json'}, body:body});
+    ok = true;
+  }catch(err){}
+  if(!ok && navigator.sendBeacon){
+    try{ navigator.sendBeacon(url, new Blob([body], {type:'application/json'})); }catch(e){}
+  }
+}
+// Abre o WhatsApp de forma resiliente: tenta nova aba; se o pop-up for bloqueado, navega na própria aba.
+function abrirWhats(link){
+  var w = null;
+  try{ w = window.open(link, '_blank'); }catch(e){}
+  if(!w){ location.href = link; }
+}
 
 // ===== Verificação de operadora (estimativa por prefixo) =====
 function operadora(v){
@@ -797,40 +827,29 @@ function enviarLead(e){
   if(window.gtag) gtag('event','generate_lead',{origem:'Formulário Hero'});
   if(window.dataLayer) dataLayer.push({event:'generate_lead', form_origin:'hero'});
 
-  // dispara o e-mail do cadastro para o corretor (sem sair da página)
+  // 1) REGISTRA O LEAD por e-mail primeiro (independe do WhatsApp; sobrevive à navegação)
   var agora = new Date().toLocaleString('pt-BR');
-  try{
-    fetch('https://formsubmit.co/ajax/' + LEAD_EMAIL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify({
-        _subject:'Novo lead Nova Leopoldina: ' + nome,
-        Nome:nome,
-        WhatsApp:whats,
-        'E-mail':email,
-        Renda:renda,
-        Operadora:operadora(whats) || 'não identificada',
-        Interesse:'Receber condições exclusivas',
-        Empreendimento:EMP,
-        'Recebido em':agora,
-        Origem:location.href,
-        _replyto: email, _cc: LEAD_CC, _template:'table', _captcha:'false'
-      })
-    }).catch(function(){});
-  }catch(err){}
+  postLead({
+    _subject:'Novo lead Nova Leopoldina: ' + nome,
+    Nome:nome, WhatsApp:whats, 'E-mail':email, Renda:renda,
+    Operadora:operadora(whats) || 'não identificada',
+    Interesse:'Receber condições exclusivas',
+    Empreendimento:EMP, 'Recebido em':agora, Origem:location.href,
+    _replyto: email
+  });
 
-  // mensagem para o WhatsApp
+  // 2) mensagem para o WhatsApp
   var msg = 'Olá! Vi a página do *' + EMP + '* e quero receber as condições exclusivas. '
           + 'Meu nome é *' + nome + '*, WhatsApp ' + whats + ', e-mail ' + email
           + ' e minha renda familiar é ' + renda + '.';
   var link = 'https://wa.me/' + WPP_NUMBER + '?text=' + encodeURIComponent(msg);
 
-  // estado de sucesso + botão de backup
+  // 3) estado de sucesso + botão de backup (funciona mesmo se o pop-up for bloqueado)
   var inner=document.getElementById('form-inner'), okBox=document.getElementById('form-ok');
   if(inner) inner.style.display='none';
   if(okBox){okBox.style.display='block'; var b=okBox.querySelector('[data-wpp]'); if(b) b.setAttribute('href', link);}
 
-  window.open(link, '_blank');
+  abrirWhats(link);
   return false;
 }
 
@@ -885,27 +904,20 @@ document.getElementById('wppForm').addEventListener('submit', function(e){
   if(window.gtag) gtag('event','contact_whatsapp',{origem: WPP_ORIGEM});
   if(window.dataLayer) dataLayer.push({event:'contact_whatsapp', origem: WPP_ORIGEM});
 
-  // e-mail automático do cadastro (mesmo destino do formulário)
+  // 1) REGISTRA O LEAD por e-mail primeiro (independe do WhatsApp; sobrevive à navegação)
   var agora = new Date().toLocaleString('pt-BR');
-  try{
-    fetch('https://formsubmit.co/ajax/' + LEAD_EMAIL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body: JSON.stringify({
-        _subject:'Novo lead Nova Leopoldina: ' + nome,
-        Nome:nome, WhatsApp:whats, Renda:renda,
-        Operadora:operadora(whats) || 'não identificada',
-        Interesse:WPP_ORIGEM,
-        Empreendimento:EMP, 'Recebido em':agora, Origem:location.href,
-        _cc: LEAD_CC, _template:'table', _captcha:'false'
-      })
-    }).catch(function(){});
-  }catch(err){}
+  postLead({
+    _subject:'Novo lead Nova Leopoldina: ' + nome,
+    Nome:nome, WhatsApp:whats, Renda:renda,
+    Operadora:operadora(whats) || 'não identificada',
+    Interesse:WPP_ORIGEM,
+    Empreendimento:EMP, 'Recebido em':agora, Origem:location.href
+  });
 
-  // WhatsApp com os dados
+  // 2) WhatsApp com os dados (resiliente a bloqueio de pop-up)
   var msg = 'Olá! Vi a página do *' + EMP + '* e quero as condições exclusivas. '
           + 'Meu nome é *' + nome + '*, meu WhatsApp é ' + whats + ' e minha renda familiar é ' + renda + '. (Origem: ' + WPP_ORIGEM + ')';
-  window.open('https://wa.me/' + WPP_NUMBER + '?text=' + encodeURIComponent(msg), '_blank');
+  abrirWhats('https://wa.me/' + WPP_NUMBER + '?text=' + encodeURIComponent(msg));
   closeWppModal();
 });
 </script>
